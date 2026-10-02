@@ -14,7 +14,8 @@ models. The main limitation: the agent task ran once per setup (n=1), on Strata
   12 GB, runs only the vision encoder (`cuda_device: 2`).
 - PCIe: gen3, x8 / x8 for the two 5060 Tis (x4 for the 3060). nvidia-smi reports a
   lower generation at idle because of link power saving.
-- Power limits: 180 W on each 5060 Ti (stock). No overclock.
+- Power limits: 180 W on each 5060 Ti (stock) and no overclock for the main results. A
+  second set with a memory overclock is reported separately below.
 - CPU: Intel i9-9900KF (8 cores / 16 threads, AVX2, no AVX-512). Strata started
   7 expert-pool workers plus the host thread.
 - RAM: 128 GB DDR4-3200.
@@ -89,6 +90,30 @@ doubled cold prefill time (details in #340).
 ### Failures
 
 None in these 9 measured runs.
+
+### With a memory overclock (+1500 MHz on both 5060 Ti)
+
+The same script on the same server, run again after setting a +1500 MHz memory
+offset in MSI Afterburner on both RTX 5060 Ti. Memory ran at 15,302 MHz, against
+14,001 MHz stock. Power limit 90% (162 W), core clock and voltage unchanged. Same
+method: 3 runs per condition after a warm-up, 256-token cap.
+
+| Configuration | Prompt tok/s median (range) | Decode tok/s median (range) | TTFT s median (range) | Total s median (range) | Drafts accepted |
+| --- | --- | --- | --- | --- | ---: |
+| short | 55.0 (54.2–55.7) | 68.2 (65.7–68.2) | 1.94 (1.82–1.95) | 5.68 (5.67–5.70) | 71% (stock 66%) |
+| long-cold | 1,125 (1,116–1,125) | 61.8 (59.5–62.1) | 18.76 (18.72–18.91) | 23.01 (22.84–23.04) | 74% (stock 70%) |
+| long-reuse | 581 (578–582) | 61.1 (59.7–64.1) | 7.98 (7.95–7.99) | 12.16 (11.96–12.21) | 80% (stock 71%) |
+
+- **Decode:** 8–10% faster than stock.
+- **Prompt reading:** within about 2%, so not limited by VRAM speed.
+- **Caveat on draft acceptance:** it was also higher in this set and raises decode
+  speed on its own, so part of the gain may be run-to-run variation.
+- **A cleaner check:** an intermediate run at +1000 MHz had the same 74%
+  acceptance on long-cold as this one, and decoded at 57.0 tok/s against 61.8
+  here, which points to a real memory effect.
+- **Power:** each 5060 Ti stayed under 100 W.
+- **Errors:** none.
+- **Data:** [`runs-mem1500.json`](runs-mem1500.json).
 
 ## Part 2: One agentic coding task (n=1)
 
